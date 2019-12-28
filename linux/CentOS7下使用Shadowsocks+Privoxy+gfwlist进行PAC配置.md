@@ -1,4 +1,23 @@
-@[toc]
+<!-- TOC -->
+
+- [CentOS7 下使用 Shadowsocks+Privoxy+gfwlist 进行 PAC 配置](#centos7-下使用-shadowsocksprivoxygfwlist-进行-pac-配置)
+    - [前言](#前言)
+    - [Shadowsocks](#shadowsocks)
+        - [1.安装](#1安装)
+        - [2.配置](#2配置)
+        - [访问测试](#访问测试)
+        - [chrome 相关](#chrome-相关)
+        - [配置启动服务](#配置启动服务)
+    - [Privoxy](#privoxy)
+        - [安装](#安装)
+        - [配置](#配置)
+        - [环境变量](#环境变量)
+    - [PAC 配置](#pac-配置)
+        - [GFWList2Privoxy](#gfwlist2privoxy)
+        - [配置 privoxy](#配置-privoxy)
+        - [GenPac](#genpac)
+
+<!-- /TOC -->
 
 ## CentOS7 下使用 Shadowsocks+Privoxy+gfwlist 进行 PAC 配置
 
@@ -120,7 +139,7 @@ ExecStart=/usr/bin/sslocal -c /etc/shadowsocks/config.json
 WantedBy=multi-user.target
 ```
 
-通过下面三个命令使用
+通过下面命令使用
 
 ```
 $systemctl enable shadowsocks.service //开机自启动
@@ -195,8 +214,12 @@ $echo export http_proxy=$PROXY >> /etc/profile
 $echo export https_proxy=$PROXY >> /etc/profile
 $source /etc/profile
 ```
-
-## 现在来自终端的所有请求都能走代理了。最后别忘了启动服务哦。
+现在来自终端的所有请求都能走代理了。最后别忘了启动服务哦。
+```
+$systemctl enable privoxy //开机自启动
+$systemctl start privoxy //启用服务
+$systemctl status privoxy //查看状态
+```
 
 ### PAC 配置
 
@@ -229,13 +252,26 @@ sudo cp gfwlist.action /etc/privoxy/
 ```
 echo .google.com >> gfwlist.action
 ```
-
 #### 配置 privoxy
-
 将.action 文件应用到 privoxy 中
-
 ```
 echo actionsfile gfwlist.action >> /etc/privoxy/config
 ```
-
 完成后重启一下 privoxy 服务即可。
+#### GenPac
+GenPac是基于gfwlist的多种代理软件配置文件生成工具，支持自定义规则，目前可生成的格式有pac, dnsmasq, wingy。具体可以查看github项目
+> https://github.com/JinnLynn/genpac  
+
+可以用它生成pac文件。先安装：
+```
+$ pip install -U genpac
+```
+在前面已经获取了gfwlist.txt文件了，可以本地生成：
+```
+$genpac --format=pac --pac-proxy="SOCKS5 127.0.0.1:1080" --gfwlist-local=~/gfwlist.txt --update-gfwlist-local
+```
+得到的pac文件可以用在chrome的switchyomega，也可以用在本地的系统代理：
+
+> switchyomega选项——新建情景模式——选择PAC情景模式，填写名称——创建
+
+然后把pac文件的内容粘贴到`PAC脚本`处就可以了
